@@ -1,0 +1,48 @@
+When execute until files load or a timeout happens
+  Given set monitor reply timeout and continue to "10" seconds
+  Given set monitor lifetime timeout and error to "30" seconds
+  Given connect to remote monitor at TCP "127.0.0.1" port "6510"
+  When send remote monitor command without parsing "watch store 2000"
+  When remote monitor wait for 3 hits
+  When remote monitor wait for hit
+  # Hopefully the game will eventually run code that touches this memory area...
+  When send remote monitor command without parsing "scrsh "%WCD%\target\temp\t$${test.cukesplus.testIteration}_1.png" 2"
+  When send remote monitor command without parsing "watch store 2000 8000"
+  When remote monitor wait for hit
+
+
+
+Then capture C64 screenshots and code dump
+  When send remote monitor command without parsing "scrsh "%WCD%\target\temp\t$${test.cukesplus.testIteration}_2.png" 2"
+  When send remote monitor command without parsing "dev c:"
+  When send remote monitor command without parsing "r"
+  Given I create file "target\temp\t$${test.cukesplus.testIteration}_reg_c64.txt" with
+    """
+    $${test.BDD6502.lastMonitorReply}
+    """
+  When send remote monitor command without parsing "bank ram"
+  When send remote monitor command without parsing "s "%WCD%\target\temp\t$${test.cukesplus.testIteration}_c64.bin" 0 0 ffff"
+  When send remote monitor command without parsing "d 0 ffff"
+  Given I create file "target\temp\t$${test.cukesplus.testIteration}_c64.txt" with
+  """
+  $${test.BDD6502.lastMonitorReply}
+  """
+  Given set property "test.c64" equal to "$${test.BDD6502.lastMonitorReply}"
+
+
+
+Then capture 1541 screenshots and code dump
+  When send remote monitor command without parsing "dev 8:"
+  When send remote monitor command without parsing "r"
+  Given I create file "target\temp\t$${test.cukesplus.testIteration}_reg_1541.txt" with
+    """
+    $${test.BDD6502.lastMonitorReply}
+    """
+  When send remote monitor command without parsing "s "%WCD%\target\temp\t$${test.cukesplus.testIteration}_1541.bin" 0 0 07ff"
+  When send remote monitor command without parsing "d 0 07ff"
+  Given I create file "target\temp\t$${test.cukesplus.testIteration}_1541.txt" with
+    """
+    $${test.BDD6502.lastMonitorReply}
+    """
+  Given set property "test.1541" equal to "$${test.BDD6502.lastMonitorReply}"
+
