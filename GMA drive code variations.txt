@@ -1,0 +1,219 @@
+GMA87 = Graeme Ashton 1987
+
+Drive code variations
+
+Using the start of the 2-bit transfer, search for:
+	.8:0742  2C 00 18    BIT $1800	<< This
+	.8:0745  10 FB       BPL $0742
+	.8:0747  A9 10       LDA #$10
+	.8:0749  8D 00 18    STA $1800
+	.8:074c  2C 00 18    BIT $1800	<< Or this
+	.8:074f  30 FB       BMI $074C
+Looking for the second BIT avoids disassembly errors sometimes fouind with the first BIT.
+So while this regex works in most situations: .*BIT \$1800.*\R.*BPL.*\R.*LDA #\$10.*\R.*STA \$1800.*\R.*BIT \$1800.*\R.*BMI.*\R.*T[XY]A.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*T[XY]A.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R
+Ideally the first BIT should be removed, to account for disassembly errors
+
+
+Drive code tends to move around less often, since it tends to get included as a binary chunk of data and sent to the drive.
+It gets disassembled and assembled less often as it doesn't have to cooperate with game code in the C64 memory.
+
+
+Armalyte:	.8:0742  2C 00 18    BIT $1800
+armalyte_s1[thalamus_1988](pal)(!)
+First used: xevious[us_gold_1986](pal)(cyan1)
+Hits: 38
+
+
+
+Power Drift:	.8:0382  2C 00 18    BIT $1800
+power_drift[activision_1989](pal)
+First used: arac[addictive_games_1986](!)
+Hits: 31
+
+
+
+To Be On Top:	.8:04ea  2C 00 18    BIT $1800
+to_be_on_top[rainbow_arts_1987](r1)(alt)
+Hits: 8
+
+
+
+Ranarama:	.8:0391  2C 00 18    BIT $1800
+ranarama[hewson_1987]
+Hits: 2
+
+
+
+
+C64 code variations tend to be more common, since the code is more easily disassembled, altered, and assembled to cooprate wit existing game code.
+
+Using this block of code to search for:
+	.C:0455  AC 00 DD    LDY $DD00
+	.C:0458  B9 00 06    LDA $0600,Y
+	.C:045b  AC 00 DD    LDY $DD00
+	.C:045e  19 08 06    ORA $0608,Y
+	.C:0461  AC 00 DD    LDY $DD00
+	.C:0464  19 10 06    ORA $0610,Y
+	.C:0467  AC 00 DD    LDY $DD00
+	.C:046a  19 18 06    ORA $0618,Y
+
+This block of code can have two variants:
+	LDY $DD00
+	or
+	LDX $DD00
+
+The preceeding block of code performs a handshake with the drive to signal the C64 is ready to read bits:
+	.C:043c  A5 A4       LDA $A4
+	.C:043e  8D 00 DD    STA $DD00
+	.C:0441  AD 00 DD    LDA $DD00
+	.C:0444  10 FB       BPL $0441
+	.C:0446  A5 A5       LDA $A5
+	.C:0448  8D 00 DD    STA $DD00
+	.C:044b  CE 20 D0    DEC $D020
+	.C:044e  EE 20 D0    INC $D020
+	.C:0451  EA          NOP
+	.C:0452  EA          NOP
+	.C:0453  EA          NOP
+	.C:0454  EA          NOP
+
+This block can have several variants, some that use immediate values for the store to $dd00 (instead of $a5/$a4), and also some use the VIC raster register to avoid bad lines:
+	.C:04fd  A9 0E       LDA #$0E		<< Immediate value for $dd00 store
+	.C:04ff  8D 00 DD    STA $DD00
+	.C:0502  2C 11 D0    BIT $D011		<<  High MSB VIC raster check
+	.C:0505  30 12       BMI $0519
+	.C:0507  AD 12 D0    LDA $D012		<< VIC raster check
+	.C:050a  CD 02 00    CMP $0002
+	.C:050d  90 05       BCC $0514
+	.C:050f  A9 0C       LDA #$0C
+	.C:0511  4C 1B 05    JMP $051B
+	.C:0514  A9 00       LDA #$00
+	.C:0516  4C 1B 05    JMP $051B
+	.C:0519  A9 0C       LDA #$0C
+	.C:051b  8D 20 D0    STA $D020		<< Border colour
+	.C:051e  AD 00 DD    LDA $DD00
+	.C:0521  10 DF       BPL $0502
+	.C:0523  AD 12 D0    LDA $D012		<< VIC raster check
+	.C:0526  C9 31       CMP #$31
+	.C:0528  90 06       BCC $0530
+	.C:052a  29 06       AND #$06
+	.C:052c  C9 02       CMP #$02
+	.C:052e  F0 F3       BEQ $0523
+	.C:0530  A9 06       LDA #$06		<< Immediate value for $dd00 store
+	.C:0532  8D 00 DD    STA $DD00
+	.C:0535  EA          NOP
+	.C:0536  EA          NOP
+	.C:0537  EA          NOP
+	.C:0538  EA          NOP
+	.C:0539  EA          NOP
+	.C:053a  EA          NOP
+	.C:053b  EA          NOP
+	.C:053c  EA          NOP
+	.C:053d  EA          NOP
+	.C:053e  EA          NOP
+
+
+This is why searching for LDX $DD00 or LDY $DD00 is slightly more reliable.
+
+
+
+
+Total matches for C64 code and 1541 code: 99
+	armalyte_s1[thalamus_1988](pal)(!)
+	power_drift[activision_1989](pal)
+	addictaball[alligata_1988](!)
+	altered_beast_s1[activision_1988](pal)(!)
+	bionic_commando[capcom_1988](pal)(!)
+	black_lamp[firebird_1988](pal)(!)
+	bob_moran_rittertum[infogrames_1988](pal)
+	danger_freak[rainbow_arts_1988](pal)(alt2)
+	eliminator[hewson_1988](!)
+	fist_plus[firebird_1988](pal)
+	garrison[rainbow_arts_1988](r1)(!)
+	ikari_warriors[elite_1988](pal)(!)
+	io[firebird_1988](pal)(!)
+	magnetron[firebird_1988]
+	morpheus[rainbird_1988](alt1)
+	morpheus[rainbird_1988](alt2)
+	morpheus[rainbird_1988]
+	out_run_s1[us_gold_1988](pal)(!)
+	samurai_warrior[firebird_1988](pal)
+	shackled[us_gold_1988](cyan2)(pal)
+	soldier_of_fortune[firebird_1988](german)(pal)
+	the_deep[us_gold_1988](pal)
+	trivial_pursuit_genus_edition_s1[domark_1988](german)(pal)(!)
+	winter_olympiad_88_s1[tynesoft_1988](pal)(!)
+	winter_olympiad_88_s2[tynesoft_1988](pal)(!)
+	addictaball[alligata_1988](alt)
+	artura[gremlin_1988](pal)(!)
+	barbarian_ii_s1[palace_1988](pal)(cyan2)(!)
+	bozuma_s1[rainbow_arts_1988](german)(pal)(r1)
+	eliminator[hewson_1988](!)
+	fist_plus[firebird_1988](pal)
+	garrison[rainbow_arts_1988](r1)(!)
+	ikari_warriors[elite_1988](pal)(!)
+	io[firebird_1988](pal)(!)
+	magnetron[firebird_1988]
+	morpheus[rainbird_1988](alt1)
+	morpheus[rainbird_1988](alt2)
+	morpheus[rainbird_1988]
+	out_run_s1[us_gold_1988](pal)(!)
+	samurai_warrior[firebird_1988](pal)
+	shackled[us_gold_1988](cyan2)(pal)
+	soldier_of_fortune[firebird_1988](german)(pal)
+	the_deep[us_gold_1988](pal)
+	winter_olympiad_88_s1[tynesoft_1988](pal)(!)
+	winter_olympiad_88_s2[tynesoft_1988](pal)(!)
+	winter_olympiad_88_s2[tynesoft_1988](pal)(alt)
+	720[us_gold_1987](cyan2)(pal)(!)
+	asterix_im_morgenland_s1[bomico_1987](german)(pal)(!)
+	baby_of_can_guru[rainbow_arts_1987](r1)(!)
+	bad_cat_s1[rainbow_arts_1987](r1)
+	bubble_bobble[firebird_1987](pal)(!)
+	chamonix_challenge[infogrames_1987](pal)(german)
+	cholo[firebird_1987](pal)(!)
+	hit_pak_trio_s1[hit_pak_1987](cataball)
+	hit_pak_trio_s2[hit_pal_1987)(airwolf_2-great_gurianos)
+	hunt_for_red_october[argos_1987](german)(!)
+	hunt_for_red_october[argos_1987]
+	hunt_for_red_october[datasoft_1987](!)
+	in_80_days_around_the_world_s1[rainbow_arts_1987](pal)(!)
+	in_80_days_around_the_world_s2[rainbow_arts_1987](pal)(!)
+	jinks[rainbow_arts_1987](!)
+	kgb_agent[pirate_1987](pal)
+	krakout[gremlin_1987](pal)(cyan1)(!)
+	lazer_tag[probe_1987](pal)
+	leaderboard_par_4_leaderboard[access_1987](dongle)(!)
+	masters_of_the_universe-terraquake[us_gold_1987](pal)(!)
+	mega-apocalypse[martech_1987](cyan2)(pal)
+	metro_cross[us_gold_1987](pal)
+	revs_plus_gold_edition[firebird_1987](pal)
+	road_runner[us_gold_1987](pal)(!)
+	sailing[activision_1987](pal)(!)
+	solomons_key[us_gold_1987](poweplay)(cyan2)(pal)(!)
+	tiger_road[capcom_1987](cyan2)(pal)(!)
+	to_be_on_top[rainbow_arts_1987](r1)(!)
+	to_be_on_top[rainbow_arts_1987](r1)(alt)
+	trivial_pursuit_baby_boomer_edition_s1[domark_1987](pal)
+	water_polo[gremlin_1987](pal)(!)
+	western_games_s1[magic_bytes_1987](pal)(!)
+	yes_prime_minister_s1[oxford_digital_1987](pal)
+	zynaps[hewson_1987](pal)
+	arac[addictive_games_1986](!)
+	biggles[mirrorsoft_1986]
+	bulldog[gremlin_1986](pal)(cyan1)
+	cyrus_ii[alligata_1986]
+	elite[firebird_1986](pal)(v040486)
+	footballer_of_the_year[gremlin_1986](cyan1)(pal)
+	leaderboard[unknown_1986](pal)
+	miami_vice[ocean_1986](cyan1)(pal)
+	out_on_the_tiles[firebird_1986]
+	parallax[ocean_1986](pal)(cyan1)
+	sanxion[thalamus_1986](pal)(!)
+	superstar_ping_pong[silvertime_1986](cyan1)(pal)
+	trailblazer[gremlin_1986](cyan2)(pal)
+	trivial_pursuit_genus_edition_s1[domark_1986](10-09-86)(!)
+	war_play[anco_1986](pal)
+	xevious[us_gold_1986](pal)(cyan1)
+	eagles[hewson_1985](pal)
+	great_graphic_adventure[incentive_1985](pal)
+	revs[firebird_1985](pal)(!)

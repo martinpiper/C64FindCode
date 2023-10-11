@@ -9,6 +9,8 @@ Feature: Find interesting drive code
     Given I run the command line ignoring return code: cmd /c mkdir target\temp
     Given I run the command line ignoring return code: cmd /c del /q target\temp\*.*
 
+    Given open file "target/matching report.txt" for writing
+
 
 
   Scenario Outline: Find interesting drive code
@@ -19,6 +21,11 @@ Feature: Find interesting drive code
     Then capture C64 screenshots and code dump
     Then capture 1541 screenshots and code dump
     
+    
+    # For the report
+    Given set property "test.gotC64Match" equal to ""
+    Given set property "test.got1541Match" equal to ""
+    
     # Search for the interesting drive code receiver pattern in C64 memory
     * if string "${test.c64}" matches regex ".*LD[XY] \$DD00.*\R.*LDA \$....,[XY].*\R.*LD[XY] \$DD00.*\R.*ORA \$....,[XY].*\R.*LD[XY] \$DD00.*\R.*ORA \$....,[XY].*\R.*LD[XY] \$DD00.*\R.*ORA \$....,[XY].*\R"
       * debug print to scenario "matched C64!"
@@ -26,26 +33,34 @@ Feature: Find interesting drive code
         """
         <filename>
         """
+      Given set property "test.gotC64Match" equal to "matched"
     * endif
 
     # Search for the interesting drive code pattern in C64 memory
-    * if string "${test.c64}" matches regex ".*BIT \$1800.*\R.*BPL.*\R.*LDA #\$10.*\R.*STA \$1800.*\R.*BIT \$1800.*\R.*BMI.*\R.*T[XY]A.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*T[XY]A.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R"
+    * if string "${test.c64}" matches regex ".*BPL.*\R.*LDA #\$10.*\R.*STA \$1800.*\R.*BIT \$1800.*\R.*BMI.*\R.*T[XY]A.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*T[XY]A.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R"
       * debug print to scenario "matched 1541 in C64!"
       Given I create file "target\temp\t${test.cukesplus.testIteration}_matched_1541_in_C64.txt" with
         """
         <filename>
         """
+      Given set property "test.got1541Match" equal to "matched"
     * endif
 
     # Search for the interesting drive code pattern in 1541 memory
-    * if string "${test.1541}" matches regex ".*BIT \$1800.*\R.*BPL.*\R.*LDA #\$10.*\R.*STA \$1800.*\R.*BIT \$1800.*\R.*BMI.*\R.*T[XY]A.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*T[XY]A.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R"
+    * if string "${test.1541}" matches regex ".*BPL.*\R.*LDA #\$10.*\R.*STA \$1800.*\R.*BIT \$1800.*\R.*BMI.*\R.*T[XY]A.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*LSR.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*T[XY]A.*\R.*AND #\$.F.*\R.*STA \$1800.*\R.*ASL.*\R.*AND #\$.F.*\R.*STA \$1800.*\R"
       * debug print to scenario "matched 1541!"
       Given I create file "target\temp\t${test.cukesplus.testIteration}_matched_1541.txt" with
         """
         <filename>
         """
+      Given set property "test.got1541Match" equal to "matched"
     * endif
 
+    * if string "${test.gotC64Match}" is not empty
+      * if string "${test.got1541Match}" is not empty
+        When write to the file a line "<filename>"
+      * endif
+    * endif
 
   Examples:
     | filename |
@@ -4098,3 +4113,8 @@ Feature: Find interesting drive code
 #    | e:\C64_Preservation_Project_10th_Anniversary_Collection_G64\c64pp-g64-zip\y\yie_ar_kung_fu[imagine_1985](pal)(!).zip |
 #    | e:\C64_Preservation_Project_10th_Anniversary_Collection_G64\c64pp-g64-zip\y\yie_ar_kung_fu[konami_1985](ntsc)(!).zip |
 #    | e:\C64_Preservation_Project_10th_Anniversary_Collection_G64\c64pp-g64-zip\z\zorro[datasoft_1985](!).zip |
+
+
+
+  Scenario: Clean up
+    When close the writing file
