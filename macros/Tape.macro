@@ -1,0 +1,229 @@
+Given initialise the output directory
+  Given I run the command line ignoring return code: cmd /c mkdir target\temp
+  Given I run the command line ignoring return code: cmd /c del /q target\temp\*.*
+
+  Given open file "target/temp/Tape fail report.txt" for writing
+  
+#  Then property "test.cukesplus.error.append.filename" is set to string ""
+#  Then property "test.cukesplus.error.append.text" is set to string ""
+
+
+
+
+Given Vice emulator auto starts the file and connect via the remote monitor
+  Given I run the command line ignoring return code: c:\SysTools\pskill x64sc
+  Given I run the command line: cmd /c start C:\Downloads\WinVICE-3.1-x86-r34062\WinVICE-3.1-x86-r34062\x64sc.exe -warp -autostart-warp +truedrive -remotemonitor -autostart "<filename>"
+
+  Given set monitor reply timeout and continue to "20" seconds
+#  Given set monitor lifetime timeout and error to "300" seconds
+  Given connect to remote monitor at TCP "127.0.0.1" port "6510"
+
+
+
+
+When getting to the point just after the filename display
+  Given I create file "target\temp\tape1_$${test.cukesplus.testIteration}_filename.txt" with
+  """
+  <filename>
+  """
+
+  Then property "test.tape.off.iterations" is set to string ""
+
+  # Wait for loading filename message to be displayed and then proceed
+  When send remote monitor command without parsing "break e4eb"
+  When remote monitor wait for hit
+
+  # Now detect a screen on, or a reset
+  When send remote monitor command without parsing "del"
+  When send remote monitor command without parsing "watch store d011"
+
+  # First turn screen off after loading filename is displayed
+  When remote monitor wait for hit
+
+  # Should extract the returned checknum from the watch
+  # Avoids any open border code by detecting the raster
+#    When send remote monitor command without parsing "cond 2 if (@io:$$d012 > $$04) && (@io:$$d012 < $$f0)"
+  # Only triggers watch for $d011 writes if the tape motor is on
+  When send remote monitor command without parsing "cond 2 if (@cpu:01 >= $$20)"
+  When send remote monitor command without parsing "break fce2"
+  When property "test.trigger.point" is set to string "false"
+
+
+
+
+
+# Add extra lines here to lengthen the timeout period for a game load.
+# Each line is a breakpoint trigger, or a timeout and continue, from the last remote monitor command.
+# Since the timeout is, currently, 20 seconds then this allows roughly 5 minutes real time, emulator warp mode at ~500% means 25 minutes emulated time, before the tape load is deemed to have timed out.
+# Also since each line triggers on $d011 writes when the tape motor is stopped this slightly shortens the overall check if the loader does writes to $d011 with the tape motor off.
+When monitoring the loading and game start process
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+  When check screen is on and tape motor has stopped
+
+
+
+
+
+Then check for a successful game start
+  * if string "$${test.trigger.point}" matches regex "false"
+    Then write to the file a line "$${test.cukesplus.testIteration} , timeout , <filename>"
+    Then take a debug screenshot 1
+  * endif
+
+  Then assert that "$${test.trigger.point}" is equal to "true"
+
+
+
+
+
+When check screen is on and tape motor has stopped
+
+  * if string "$${test.trigger.point}" matches regex "false"
+
+    When remote monitor wait for hit
+
+    When debug print to scenario "$${test.BDD6502.lastMonitorReply}"
+    When debug print to scenario "$${test.BDD6502.lastGoodMonitorReply}"
+    When debug print to scenario "$${test.BDD6502.previousMonitorReply}"
+    When debug print to scenario "$${test.BDD6502.previousMonitorReply2}"
+    
+    Then property "test.tape.off.check" is set to string "yes"
+  
+    # Detect reset: kernal enabled and Stop on  exec fce2
+    * if string "$${test.BDD6502.previousMonitorReply}" matches regex "Stop on  exec fce2"
+        Then property "test.tape.off.check" is set to string "no"
+
+        When send remote monitor command without parsing "bank cpu"
+        When send remote monitor command without parsing "m 00 01"
+  
+        # Make sure the kernal is mapped in, so it's not detecting RAM running code, like user turbo loaders.
+        * if string "$${test.BDD6502.lastMonitorReply}" matches regex ".*0000  .[037f] .[2367abef].*"
+          Then write to the file a line "$${test.cukesplus.testIteration} , reset , <filename>"
+          Then assert that "Reset detected" is false
+        * endif
+    * endif
+  
+    
+    * if string "$${test.BDD6502.previousMonitorReply}" matches regex "Stop on store d011"
+      Then property "test.tape.off.check" is set to string "no"
+    * endif
+
+    When perform screen on check
+
+    * if string "$${test.tape.off.check}" matches regex "yes"
+      When perform tape stop iterations check
+    * endif
+
+  * endif
+
+
+
+# Utility macro for this common test
+* if tape state is stopped check
+  When send remote monitor command without parsing "bank cpu"
+  When send remote monitor command without parsing "m 00 01"
+
+  # Detect tape motor off, or end of tape, ignore play down and any motor on
+  * if string "$${test.BDD6502.lastMonitorReply}" matches regex ".*0000  [236ad]. [12367abef]..*"
+
+
+
+
+# This adds a single character to the property "test.tape.off.iterations" every 20 seconds (roughly) if it detects the tape motor is off, after the result matches "aaa" and the screen on check has not worked, that the load is flagged as failing.
+When perform tape stop iterations check
+
+  * if tape state is stopped check
+    Then property "test.tape.off.iterations" is set to string "a$${test.tape.off.iterations}"
+  * endif
+
+  * if string "$${test.tape.off.iterations}" matches regex "aaa"
+    Then write to the file a line "$${test.cukesplus.testIteration} , stop timeout , <filename>"
+    Then take a debug screenshot 1
+    Then assert that "Stopped tape iterations detected" is false
+  * endif
+
+
+
+
+When take a debug screenshot *
+  When send remote monitor command without parsing "scrsh "%WCD%\target\temp\tape1_$${test.cukesplus.testIteration}_$${test.cukesplus.step.line}_$1.png" 2"
+
+
+
+# If the screen is on, the tape motor state is checked here
+# If the motor is off, and the screen is on, then the screen memory is dumped and several screenshots are taken with roughly a couple of frames delay between them.
+When perform tape state check
+  When debug print to scenario "Tape state check"
+
+  * if tape state is stopped check
+    When debug print to scenario "Tape motor off"
+
+    When send remote monitor command without parsing "sc"
+    Given I create file "target\temp\tape1_$${test.cukesplus.testIteration}_sc.txt" with
+    """
+    $${test.BDD6502.lastMonitorReply}
+    """
+
+    When send remote monitor command without parsing "del"
+    
+    When take a debug screenshot 1
+
+    When send remote monitor command without parsing "step 9852"
+    When take a debug screenshot 2
+
+    When send remote monitor command without parsing "step 9852"
+    When take a debug screenshot 3
+
+    When send remote monitor command without parsing "step 9852"
+    When take a debug screenshot 4
+
+    Then property "test.trigger.point" is set to string "true"
+
+  * endif
+
+
+
+
+
+When perform screen on check
+  # Detect screen enable store, the bit combinations that result in the screen being enabled
+  When debug print to scenario "VIC screen control check"
+  When send remote monitor command without parsing "bank io"
+  When send remote monitor command without parsing "m d011 d011"
+
+  * if string "$${test.BDD6502.lastMonitorReply}" matches regex ".*d011  [13579bdf]..*"
+
+    When debug print to scenario "Screen is on"
+    Then property "test.tape.off.iterations" is set to string ""
+    
+    # Detect if it's from the kernal and ignore
+    
+#    When send remote monitor command without parsing "io d000"
+#    When debug print to scenario "$${test.BDD6502.lastGoodMonitorReply}"
+#    When send remote monitor command without parsing "io 01"
+#    When debug print to scenario "$${test.BDD6502.lastGoodMonitorReply}"
+    
+    When perform tape state check
+
+  * endif
