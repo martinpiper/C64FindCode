@@ -19,7 +19,6 @@ Feature: Find tape files that fail to load
     When monitoring the loading and game start process
     Then check for a successful game start
 
-
   Examples:
     | filename |
     | C:\temp\t.tap |
